@@ -21,17 +21,20 @@ const posts = [{
     id : '1',
     title : 'título 1',
     body : 'Body 1',
-    published : false
+    published : false,
+    author : '1'
 },{
     id : '2',
     title : 'título 2',
     body : 'Body 2',
-    published : false
+    published : false,
+    author : '1'
 },{
     id : '3',
     title : 'título 3',
     body : 'Body 3',
-    published : true
+    published : true,
+    author : '2'
 }]
 //type definitions (schema)
 const typeDefs = `
@@ -46,12 +49,14 @@ const typeDefs = `
         name : String!
         email : String!
         age : Int
+        posts : [Post!]!
     }
     type Post {
         id : ID!
         title : String!
         body : String!
         published : Boolean!
+        author : User!
     }
 ` 
 //Resolvers
@@ -89,6 +94,20 @@ const resolvers = {
                name : 'Santiago',
                email : 'santiago@htoma.com'
             }
+        }
+    },
+    Post : {
+        author(parent, args, ctx, info){
+            return users.find( user => {
+                return user.id === parent.author
+            })
+        }
+    },
+    User : {
+        posts(parent, args, ctx, info) {
+            return posts.filter(post => {
+                return post.author === parent.id
+            })
         }
     }
 }
