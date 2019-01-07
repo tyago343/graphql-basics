@@ -1,4 +1,5 @@
 import { GraphQLServer } from 'graphql-yoga'
+import uuid4 from 'uuid/v4'
 
 //scalar types - String, integer, float, boolean, ID
 //Demo user data
@@ -70,6 +71,11 @@ const typeDefs = `
         comments: [Comment!]!
         post : Post!
         me : User!
+    }
+    type Mutation {
+        createUser(name: String!, email: String!, age: Int) : User!
+        createPost(title : String!, body : String!, published : Boolean!, author : ID!) : Post!
+        createComment(text: String!, author : ID!, post : ID!) : Comment!
     }
     type User {
         id : ID!
@@ -170,7 +176,56 @@ const resolvers = {
                 return post.id == parent.post
             })
         }
-    }
+    },
+    Mutation : {
+        createUser(parent, args, ctx, info){
+            const emailTaken = users.some(user=>{
+                return user.email === args.email
+            })
+            if(emailTaken){
+                throw new Error('This email is taken')
+            }
+            const user = {
+                id : uuid4(), 
+                name : args.name,
+                email : args.email,
+                age : args.age
+            }
+            users.push(user)
+            return user
+        },
+        createPost(parent, args, ctx, info){
+            const userExist = users.some(user=>user.id === args.author)
+            if(!userExist){
+                throw new Error('That user doenst exist.')
+            }
+            const post = {
+                id : uuid4(),
+                title : args.title,
+                body : args.body,
+                published : args.published,
+                author : args.author
+            }
+            posts.push(post)
+            return post
+        },
+        createComment(parent, args, ctx, info){
+            const userExist = users.some(user=>user.id === args.author)
+            const postExist = posts.some(post=>post.id === args.post && post.published)
+            if(!postExist || !userExist){
+                throw new Error('You cant comment this shit')
+            }
+            const comment = {
+                id : uuid4(),
+                text : args.text,
+                author : args.author,
+                post : args.post
+            }
+            comments.push(comment)
+            return comment
+
+        }
+    },
 }
 
 const server = new GraphQLServer({
