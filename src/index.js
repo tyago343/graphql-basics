@@ -3,7 +3,7 @@ import uuid4 from 'uuid/v4'
 
 //scalar types - String, integer, float, boolean, ID
 //Demo user data
-const users = [{
+var users = [{
     id : '1',
     name : 'Santiago',
     email : 'santiago@mail.com',
@@ -18,7 +18,7 @@ const users = [{
     name : 'Pat',
     email : 'pat@mail.com'
 }]
-const posts = [{
+var posts = [{
     id : '1',
     title : 'título 1',
     body : 'Body 1',
@@ -37,7 +37,7 @@ const posts = [{
     published : true,
     author : '2'
 }]
-const comments = [
+var comments = [
     {
         id : '14',
         text : 'Ex pariatur adipisicing in adipisicing labore aute tempor deserunt.',
@@ -76,6 +76,7 @@ const typeDefs = `
         createUser(data : CreateUserInput) : User!
         createPost(data : CreatePostInput) : Post!
         createComment(data: CreateCommentInput) : Comment!
+        deleteUser(id: ID!) : User!
     }
 
     input CreateUserInput {
@@ -208,6 +209,22 @@ const resolvers = {
             }
             users.push(user)
             return user
+        },
+        deleteUser(parent, args,ctx, info){
+            const userIndex = users.findIndex(user=>user.id === args.id)
+            if(userIndex == -1){
+                throw new Error('User not found!!')
+            }
+            const deletedUsers = users.splice(userIndex, 1)
+            posts = posts.filter(post=>{
+                const match = post.author === args.id
+                if(match){
+                    comments = comments.filter(comment=>comment.post != post.id)
+                }
+                return !match
+            })
+            comments = comments.filter(comment=>comment.author === args.id)
+            return deletedUsers[0]
         },
         createPost(parent, args, ctx, info){
             const userExist = users.some(user=>user.id === args.data.author)
