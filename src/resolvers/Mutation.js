@@ -48,6 +48,55 @@ const Mutation = {
             return db.comments.splice(commentIndex, 1)[0]
             
         },
+        updateUser(parent, args, {db}, info){
+            const user = db.users.find(user=> user.id === args.id)
+            if(!user){
+                throw new Error('User not found!')
+            }
+            if (typeof args.data.email === 'string'){
+                const emailTaken = db.users.some(user=>user.email === args.data.email)
+                if(emailTaken){
+                    throw new Error('Email taken')
+                }
+                user.email = args.data.email
+            }
+            if(typeof args.data.name === 'string'){
+                user.name = args.data.name
+            }
+            if(typeof args.data.age !== 'undefined'){
+                user.age = args.data.age
+            }
+            return user
+        },
+        updatePost(parent, args, {db}, info){
+            const { id, data } = args
+            const { title, body, published } = data
+            const post = db.posts.find(post=>post.id === id)
+            if(!post){
+                throw new Error('Post not found!')
+            }
+            if(typeof title === 'string'){
+                post.title = title
+            }
+            if(typeof body === 'string'){
+                post.body = body
+            }
+            if(typeof published === 'boolean'){
+                post.published = published
+            }
+            return post
+        },
+        updateComment(parent, args, {db}, info){
+            const { id, text } = args
+            const comment = db.comments.find(comment=>comment.id===id)
+            if(!comment){
+                throw new Error('That comments doesnt exist!!')
+            }
+            if(typeof text === 'string'){
+                comment.text = text
+            }
+            return comment
+        },
         createPost(parent, args, {db}, info){
             const userExist = db.users.some(user=>user.id === args.data.author)
             if(!userExist){
