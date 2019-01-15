@@ -31,14 +31,22 @@ const Mutation = {
             db.comments = db.comments.filter(comment=>comment.author === args.id)
             return deletedUsers[0]
         },
-        deletePost(oarent, args, {db}, info){
+        deletePost(oarent, args, {db, pubsub}, info){
             const postIndex = db.posts.findIndex(post=>post.id === args.id)
             if(postIndex === -1){
                 throw new Error('Post not found!!')
             }
-            const deletedPost = db.posts.splice(postIndex, 1)
+            const [post] = db.posts.splice(postIndex, 1)
             db.comments = db.comments.filter(comment=>comment.post !== args.id)
-            return deletedPost[0]
+            if(post.published){
+                pubsub.publish('post',{
+                    post:{
+                        mutation: 'DELETED',
+                        data: post
+                    }
+                })
+            }
+            return post
         },
         deleteComment(parent, args, {db}, info){
             const commentIndex = db.comments.findIndex(comment=>comment.id === args.id)
@@ -68,10 +76,11 @@ const Mutation = {
             }
             return user
         },
-        updatePost(parent, args, {db}, info){
+        updatePost(parent, args, {db, pubsub }, info){
             const { id, data } = args
             const { title, body, published } = data
             const post = db.posts.find(post=>post.id === id)
+            const originalPost = { ...post }
             if(!post){
                 throw new Error('Post not found!')
             }
@@ -83,6 +92,28 @@ const Mutation = {
             }
             if(typeof published === 'boolean'){
                 post.published = published
+                if(originalPost.published && !post.published){
+                    pubsub.publish('post', {
+                        post: {
+                            mutation: 'DELETED',
+                            data: originalPost
+                        }
+                    })
+                }else if (!originalPost.published && post.published){
+                    pubsub.publish('post',{
+                        post: {
+                            mutation:"CREATED",
+                            data:post
+                        }
+                    })
+                }else if(post.published){
+                    pubsub.publish('post',{
+                        post: {
+                            mutation:"UPDATED",
+                            data:post
+                        }
+                    })
+                }
             }
             return post
         },
@@ -108,7 +139,12 @@ const Mutation = {
             }
             db.posts.push(post)
             if(post.published){
-            pubsub.publish('post', {post})
+                pubsub.publish('post', {
+                    post: {
+                        mutation: 'CREATED',
+                        data: post
+                    }
+                })
             }
             return post
         },
